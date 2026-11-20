@@ -181,6 +181,30 @@ contract ArcaneaNFTTest is Test {
         );
     }
 
+    function test_PauseRejectsBatchWithoutAllocatingSerialsOrCollectingPayment() public {
+        uint256 mintedBefore = nft.totalMinted();
+        uint256 proceedsBefore = address(nft).balance;
+        vm.prank(admin);
+        nft.pause();
+
+        vm.startPrank(admin);
+        vm.expectRevert(Pausable.EnforcedPause.selector);
+        nft.batchMint{ value: 2 * MINT_PRICE }(
+            alice,
+            2,
+            ArcaneaNFT.Element.Fire,
+            ArcaneaNFT.Guardian.Draconia,
+            ArcaneaNFT.House.Pyros,
+            ArcaneaNFT.Tier.Rare,
+            false
+        );
+        vm.stopPrank();
+
+        assertEq(nft.totalMinted(), mintedBefore);
+        assertEq(nft.balanceOf(alice), 0);
+        assertEq(address(nft).balance, proceedsBefore);
+    }
+
     // ── H3: attributes (soulbound) must be written before the _safeMint callback ──
 
     function test_H3_ReentrantReceiverCannotMoveSoulboundTokenDuringMint() public {
